@@ -1,0 +1,9 @@
+node_modules/
+.npm-cache/
+.DS_Store
+npm-debug.log*
+*.log
+
+# 개인정보가 담긴 데이터 파일은 공개 저장소에 올리지 않음
+임장 체크리스트.md
+과천 임장 점수표.md

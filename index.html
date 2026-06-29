@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>🏡 임장 스코어보드</title>
+  <style>
+  :root {
+    --bg: #0f1116; --surface: #1a1d27; --surface-2: #232733; --border: #2e3342;
+    --text: #eef1f7; --muted: #9aa3b5; --primary: #6366f1; --primary-2: #818cf8;
+    --gold: #f5c518; --silver: #a8b1c2; --bronze: #cd7f4d; --green: #34d399; --red: #f87171;
+    --radius: 16px; --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(120% 100% at 50% 0%, #181b24 0%, var(--bg) 60%);
+    color: var(--text); min-height: 100vh;
+    padding-bottom: calc(118px + var(--safe-bottom)); font-size: 15px; line-height: 1.45;
+  }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+
+  .app-header {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    background: rgba(15,17,22,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+  }
+  .title { display: flex; align-items: center; gap: 10px; }
+  .title .emoji { font-size: 30px; }
+  .title h1 { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+  .title p { font-size: 12px; color: var(--muted); }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 18px; cursor: pointer; }
+  .icon-btn:active { transform: scale(0.94); }
+
+  .role-banner {
+    margin: 14px 16px 0; padding: 10px 14px; border-radius: 12px; font-size: 12.5px; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .role-label { font-weight: 700; color: var(--text); }
+  #role-select {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--primary);
+    border-radius: 10px; padding: 7px 30px 7px 12px; font-size: 13px; font-weight: 700;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa3b5' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  .role-hint { flex: 1; min-width: 140px; }
+
+  .dashboard, .checklist { margin: 16px; }
+  .dashboard { padding: 18px 16px 14px; }
+  .dash-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .dash-head h2 { font-size: 16px; font-weight: 700; }
+  .tabs { display: flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
+  .tab { border: none; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .tab.active { background: var(--primary); color: #fff; }
+
+  .view-tabs { display: flex; gap: 8px; margin: 16px 16px 0; }
+  .view-tab {
+    flex: 1; height: 46px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: transform 0.08s, background 0.15s, color 0.15s;
+  }
+  .view-tab:active { transform: scale(0.97); }
+  .view-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .bars { display: flex; flex-direction: column; gap: 14px; }
+  .bar-row .bar-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 6px; }
+  .bar-row .bar-label .name { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .bar-row .bar-label .medal { font-size: 15px; }
+  .bar-row .bar-label .pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .bar-track { height: 12px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--primary), var(--primary-2)); transition: width 0.5s cubic-bezier(0.2,0.8,0.2,1); }
+  .bar-row.rank-1 .bar-fill { background: linear-gradient(90deg, #d6a206, var(--gold)); }
+  .legend { text-align: center; color: var(--muted); font-size: 11.5px; margin-top: 14px; }
+
+  .checklist { display: flex; flex-direction: column; gap: 14px; }
+  .item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .item-head { display: flex; justify-content: space-between; align-items: center; padding: 13px 15px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .item-head .item-name { font-weight: 700; font-size: 15px; }
+  .item-head .item-sum { font-size: 12px; font-weight: 700; color: var(--primary-2); background: rgba(99,102,241,0.15); padding: 3px 9px; border-radius: 99px; }
+  .apt { padding: 12px 15px; border-bottom: 1px solid var(--border); }
+  .apt:last-child { border-bottom: none; }
+  .apt-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+  .apt-name { font-weight: 600; font-size: 14px; }
+  .apt-pts { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .apt-pts.has { color: var(--green); }
+  .row { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+  .row .who { width: 34px; font-size: 12px; color: var(--muted); flex-shrink: 0; font-weight: 600; }
+  .ranks { display: flex; gap: 6px; flex: 1; }
+  .rank-btn { flex: 1; height: 38px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: transform 0.08s, background 0.15s; }
+  .rank-btn:active { transform: scale(0.92); }
+  .rank-btn.active[data-rank="1"] { background: var(--gold); color: #1a1d27; border-color: var(--gold); }
+  .rank-btn.active[data-rank="2"] { background: var(--silver); color: #1a1d27; border-color: var(--silver); }
+  .rank-btn.active[data-rank="3"] { background: var(--bronze); color: #fff; border-color: var(--bronze); }
+  .rank-btn.active[data-rank="x"] { background: var(--surface); color: var(--muted); border-color: var(--border); }
+
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: flex; flex-direction: column; gap: 9px; padding: 10px 14px calc(10px + var(--safe-bottom)); background: rgba(15,17,22,0.94); backdrop-filter: blur(12px); border-top: 1px solid var(--border); }
+  .status { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 99px; background: var(--muted); }
+  .dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot.offline { background: var(--red); }
+  .dot.dirty { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+  .action-row { display: flex; gap: 8px; }
+  .act-btn { flex: 1; height: 48px; border: none; border-radius: 12px; cursor: pointer; color: #fff; font-size: 14px; font-weight: 700; letter-spacing: -0.2px; transition: transform 0.08s, opacity 0.15s; }
+  .act-btn:active { transform: scale(0.96); }
+  .act-btn:disabled { opacity: 0.6; }
+  .act-save { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); }
+  .act-send { background: linear-gradient(90deg, var(--primary), var(--primary-2)); }
+  .act-done { background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+  .btn-danger { flex: 1; height: 44px; border-radius: 10px; border: none; cursor: pointer; background: var(--red); color: #fff; font-size: 14px; font-weight: 700; }
+
+  .modal-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 24px; }
+  .modal-overlay[hidden] { display: none; }
+  .modal { width: 100%; max-width: 380px; padding: 22px; }
+  .modal h3 { font-size: 17px; margin-bottom: 8px; }
+  .modal .muted { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .modal input { width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 15px; margin-bottom: 10px; }
+  .field-label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 4px 0 5px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-ghost, .btn-primary { flex: 1; height: 44px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-ghost { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); }
+  .btn-primary { background: var(--primary); border: none; color: #fff; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(120px + var(--safe-bottom)); transform: translateX(-50%); z-index: 60; max-width: 90%; padding: 12px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.4); animation: toast-in 0.25s ease; }
+  .toast[hidden] { display: none; }
+  .toast.success { background: #16a34a; }
+  .toast.error { background: #dc2626; }
+  @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .loading { text-align: center; color: var(--muted); padding: 40px 0; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="title">
+      <span class="emoji">🏡</span>
+      <div>
+        <h1>임장 스코어보드</h1>
+        <p>영훈 &amp; 상희의 보금자리 찾기</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-stats" class="icon-btn" title="깃에서 최신 불러오기">🔄</button>
+      <button id="btn-settings" class="icon-btn" title="깃 동기화 설정">⚙️</button>
+    </div>
+  </header>
+
+  <nav class="view-tabs">
+    <button class="view-tab active" data-view="input">✏️ 입력</button>
+    <button class="view-tab" data-view="stats">📊 종합점수</button>
+  </nav>
+
+  <div class="role-banner">
+    <span class="role-label">나는</span>
+    <select id="role-select">
+      <option value="husband">🙋‍♂️ 남편 (영훈)</option>
+      <option value="wife">🙋‍♀️ 아내 (상희)</option>
+    </select>
+    <span class="role-hint">내 칸을 채워 💾 저장 → 📤 전송하기(카톡 공유)</span>
+  </div>
+
+  <section class="dashboard card">
+    <div class="dash-head">
+      <h2>📊 종합 점수</h2>
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="total">종합</button>
+        <button class="tab" data-tab="husband">남편</button>
+        <button class="tab" data-tab="wife">아내</button>
+      </div>
+    </div>
+    <div id="bars" class="bars"></div>
+    <p class="legend">1순위 10점 · 2순위 5점 · 3순위 3점</p>
+  </section>
+
+  <main id="checklist" class="checklist">
+    <div class="loading">불러오는 중…</div>
+  </main>
+
+  <div class="bottom-bar">
+    <div class="status">
+      <span id="dot" class="dot"></span>
+      <span id="status-text">로컬에서 작업 중</span>
+    </div>
+    <div class="action-row">
+      <button id="btn-save" class="act-btn act-save">💾 저장</button>
+      <button id="btn-send" class="act-btn act-send">📤 전송하기</button>
+      <button id="btn-done" class="act-btn act-done">🧹 작업완료</button>
+    </div>
+  </div>
+
+  <!-- 깃 동기화 설정 모달 -->
+  <div id="modal" class="modal-overlay" hidden>
+    <div class="modal card">
+      <h3>⚙️ 깃 동기화 설정</h3>
+      <p class="muted">저장하면 깃에 업로드되고, 두 폰이 같은 점수를 공유합니다. 토큰은 <b>이 기기에만</b> 저장되고 소스에는 올라가지 않아요.</p>
+      <label class="field-label">저장소 (owner/repo)</label>
+      <input id="gh-repo" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="예: sh-shin/moving" />
+      <label class="field-label">브랜치</label>
+      <input id="gh-branch" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="main" />
+      <label class="field-label">액세스 토큰 (fine-grained, Contents 읽기/쓰기)</label>
+      <input id="gh-token" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." />
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn-ghost">취소</button>
+        <button id="modal-save" class="btn-primary">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 작업완료 확인 -->
+  <div id="confirm-modal" class="modal-overlay" hidden>
+    <div class="modal card">
+      <h3>🧹 로컬 기록 청소</h3>
+      <p class="muted">
+        이 기기(브라우저)에 저장된 입력 내용을 <b>완전히 삭제</b>합니다.<br/><br/>
+        전송(또는 합산)이 끝난 뒤에 눌러주세요. 삭제 후에는 이 기기에 어떤 기록도 남지 않습니다.<br/><br/>
+        <b>정말 깨끗하게 지울까요?</b>
+      </p>
+      <div class="modal-actions">
+        <button id="confirm-cancel" class="btn-ghost">취소</button>
+        <button id="confirm-yes" class="btn-danger">YES, 삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script>
+  // ─────────────────────────────────────────────────────────────
+  // 상태
+  // ─────────────────────────────────────────────────────────────
+  const APARTMENTS = ['라비엔오 404동 2층', '르센토 506동 7층', '벨라르테 604동 14층'];
+  const ITEMS = [
+    '지하철 편의성', '도로소음', '커뮤니티 편의', '조망', '지하주차장 접근성',
+    '아파트 주변 관리상태', '채광/일조권', '누수/결로(곰팡이)', '수압/배수', '층간소음',
+    '로열동 여부', '매도 사유', '싼/비싼 이유', '등기상 이슈',
+  ];
+  const state = { apartments: [], items: [], husband: {}, wife: {}, tab: 'total', role: 'husband', view: 'input' };
+  const ROLE_LABEL = { husband: '남편', wife: '아내' };
+
+  const KEY_STATE = 'moving_state';
+  const KEY_DIRTY = 'moving_dirty';
+  const KEY_GH = 'moving_github';
+  const KEY_ROLE = 'moving_role';
+  const RANK_SCORE = { 1: 10, 2: 5, 3: 3 };
+  const MEDALS = ['🥇', '🥈', '🥉'];
+  const GH_PATH = { husband: 'data/husband.md', wife: 'data/wife.md' };
+  const $ = (s) => document.querySelector(s);
+
+  // ── GitHub 동기화 ──
+  function ghConfig() {
+    try {
+      const c = JSON.parse(localStorage.getItem(KEY_GH) || 'null');
+      if (c && c.owner && c.repo && c.token) {
+        return { owner: c.owner, repo: c.repo, branch: c.branch || 'main', token: c.token };
+      }
+    } catch {}
+    return null;
+  }
+  function utf8ToB64(s) { return btoa(String.fromCharCode(...new TextEncoder().encode(s))); }
+  function b64ToUtf8(b) { return new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g, '')), (c) => c.charCodeAt(0))); }
+  function ghUrl(c, path) {
+    return `https://api.github.com/repos/${c.owner}/${c.repo}/contents/${path}`;
+  }
+  async function ghGet(path) {
+    const c = ghConfig(); if (!c) return null;
+    const res = await fetch(`${ghUrl(c, path)}?ref=${encodeURIComponent(c.branch)}`, {
+      headers: { Authorization: `Bearer ${c.token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store',
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('GET ' + res.status);
+    const j = await res.json();
+    return { sha: j.sha, text: b64ToUtf8(j.content || '') };
+  }
+  async function ghPut(path, text, sha, message) {
+    const c = ghConfig(); if (!c) throw new Error('no-config');
+    const body = { message, content: utf8ToB64(text), branch: c.branch };
+    if (sha) body.sha = sha;
+    const res = await fetch(ghUrl(c, path), {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${c.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('PUT ' + res.status + ' ' + (await res.text()));
+  }
+
+  function isDirty() { return localStorage.getItem(KEY_DIRTY) === '1'; }
+  function setDirty(v) {
+    if (v) localStorage.setItem(KEY_DIRTY, '1'); else localStorage.removeItem(KEY_DIRTY);
+    updateStatus();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 초기화
+  // ─────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    state.role = localStorage.getItem(KEY_ROLE) || 'husband';
+    $('#role-select').value = state.role;
+    if (!loadLocal()) seedEmpty();
+    setupEvents();
+    setView('input'); // 기본은 입력 화면
+    updateStatus();
+    if (ghConfig()) syncPull({ silent: true }); // 깃 설정돼 있으면 최신 불러오기
+  });
+
+  // 상단 뷰 전환 (입력 / 종합점수)
+  function setView(view) {
+    state.view = view;
+    document.querySelectorAll('.view-tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
+    const isInput = view === 'input';
+    document.querySelector('.dashboard').style.display = isInput ? 'none' : '';
+    document.querySelector('.role-banner').style.display = isInput ? '' : 'none';
+    document.querySelector('.bottom-bar').style.display = isInput ? '' : 'none';
+    $('#checklist').style.display = isInput ? '' : 'none';
+    if (!isInput) {
+      renderDashboard();
+      if (ghConfig()) syncPull({ silent: true }); // 종합점수 진입 시 최신 반영
+    }
+  }
+
+  function seedEmpty() {
+    state.apartments = [...APARTMENTS];
+    state.items = [...ITEMS];
+    state.husband = {};
+    state.wife = {};
+    render();
+    updateStatus();
+  }
+
+  function loadLocal() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY_STATE) || 'null');
+      if (!saved) return false;
+      Object.assign(state, {
+        apartments: saved.apartments?.length ? saved.apartments : [...APARTMENTS],
+        items: saved.items?.length ? saved.items : [...ITEMS],
+        husband: saved.husband || {}, wife: saved.wife || {},
+      });
+      render(); updateStatus();
+      return true;
+    } catch (e) { console.error(e); return false; }
+  }
+
+  function saveLocal(markDirty = true) {
+    localStorage.setItem(KEY_STATE, JSON.stringify({
+      apartments: state.apartments, items: state.items, husband: state.husband, wife: state.wife,
+    }));
+    if (markDirty) setDirty(true);
+  }
+
+  // 깃에서 최신 점수 불러와 합치기 (상대방은 항상 반영, 내 미저장 입력은 보호)
+  async function syncPull({ silent = false } = {}) {
+    const c = ghConfig();
+    if (!c) { if (!silent) toast('먼저 ⚙️에서 저장소·토큰을 설정하세요.', 'error'); return false; }
+    $('#dot').className = 'dot';
+    try {
+      const [hmd, wmd] = await Promise.all([ghGet(GH_PATH.husband), ghGet(GH_PATH.wife)]);
+      if (!state.apartments.length) { state.apartments = [...APARTMENTS]; state.items = [...ITEMS]; }
+      const apply = (role, file) => {
+        if (!file) return;
+        const p = parseMarkdown(file.text);
+        if (p && p[role]) mergeRole(role, p[role]);
+      };
+      const partner = state.role === 'husband' ? 'wife' : 'husband';
+      apply(partner, partner === 'husband' ? hmd : wmd);          // 상대방 데이터는 항상 최신 반영
+      if (!isDirty()) apply(state.role, state.role === 'husband' ? hmd : wmd); // 내 미저장 입력은 보호
+      saveLocal(false);
+      $('#dot').className = 'dot online';
+      render();
+      updateStatus();
+      if (!silent) toast('🔄 깃에서 최신 점수를 불러왔어요.', 'success');
+      return true;
+    } catch (e) {
+      console.error(e);
+      $('#dot').className = 'dot offline';
+      updateStatus();
+      if (!silent) toast('깃 불러오기 실패 — ⚙️ 저장소/토큰 확인', 'error');
+      return false;
+    }
+  }
+
+  function mergeRole(role, data) {
+    if (!data) return;
+    state.items.forEach((item) => state.apartments.forEach((apt) => {
+      const cell = data[item]?.[apt];
+      if (cell && (cell.rank || (cell.note && cell.note.trim()))) {
+        if (!state[role][item]) state[role][item] = {};
+        state[role][item][apt] = cell;
+      }
+    }));
+  }
+
+  // 내 역할 파일을 깃에 업로드
+  async function pushMine() {
+    const path = GH_PATH[state.role];
+    const md = buildMarkdown();
+    let sha = null;
+    try { const ex = await ghGet(path); if (ex) sha = ex.sha; } catch {}
+    await ghPut(path, md, sha, `update ${state.role} ${new Date().toISOString()}`);
+  }
+
+  function updateStatus() {
+    const dot = $('#dot'); const txt = $('#status-text');
+    const synced = !!ghConfig();
+    if (dot.classList.contains('online')) {
+      txt.textContent = isDirty() ? '저장 대기 중 (깃 연결됨)' : '깃 동기화됨';
+    } else if (dot.classList.contains('offline')) {
+      txt.textContent = '깃 연결 실패';
+    } else if (synced) {
+      txt.textContent = isDirty() ? '이 기기에 저장됨 · 업로드 대기' : '깃 설정됨';
+    } else {
+      txt.textContent = isDirty() ? '이 기기에 저장됨' : '로컬에서 작업 중';
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 이벤트
+  // ─────────────────────────────────────────────────────────────
+  function setupEvents() {
+    // 상단 뷰 탭
+    document.querySelectorAll('.view-tab').forEach((t) => {
+      t.addEventListener('click', () => setView(t.dataset.view));
+    });
+
+    $('#btn-save').addEventListener('click', saveToDevice);
+    $('#btn-send').addEventListener('click', send);
+
+    const confirmModal = $('#confirm-modal');
+    $('#btn-done').addEventListener('click', () => (confirmModal.hidden = false));
+    $('#confirm-cancel').addEventListener('click', () => (confirmModal.hidden = true));
+    $('#confirm-yes').addEventListener('click', () => { confirmModal.hidden = true; cleanupLocal(); });
+    confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) confirmModal.hidden = true; });
+
+    // 역할 선택 (남편 / 아내)
+    $('#role-select').addEventListener('change', (e) => {
+      state.role = e.target.value;
+      localStorage.setItem(KEY_ROLE, state.role);
+      render();
+      toast(`${ROLE_LABEL[state.role]} 모드 — 내 칸만 보여요.`, 'success');
+    });
+
+    // 🔄 새로고침: 깃에서 최신 불러오기
+    $('#btn-stats').addEventListener('click', () => syncPull({}));
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        state.tab = tab.dataset.tab;
+        renderDashboard();
+      });
+    });
+
+    const modal = $('#modal');
+    $('#btn-settings').addEventListener('click', () => {
+      const c = ghConfig();
+      $('#gh-repo').value = c ? `${c.owner}/${c.repo}` : '';
+      $('#gh-branch').value = c ? c.branch : 'main';
+      $('#gh-token').value = c ? c.token : '';
+      modal.hidden = false;
+    });
+    $('#modal-cancel').addEventListener('click', () => (modal.hidden = true));
+    $('#modal-save').addEventListener('click', () => {
+      const repo = $('#gh-repo').value.trim()
+        .replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+      const [owner, name] = repo.split('/');
+      const branch = $('#gh-branch').value.trim() || 'main';
+      const token = $('#gh-token').value.trim();
+      if (!owner || !name || !token) { toast('저장소(owner/repo)와 토큰을 입력하세요.', 'error'); return; }
+      localStorage.setItem(KEY_GH, JSON.stringify({ owner, repo: name, branch, token }));
+      modal.hidden = true;
+      toast('깃 동기화 설정을 저장했어요.', 'success');
+      syncPull({});
+    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 점수 계산
+  // ─────────────────────────────────────────────────────────────
+  function scoreOf(rank) { return RANK_SCORE[rank] || 0; }
+
+  function calcScores() {
+    const r = {};
+    state.apartments.forEach((apt) => (r[apt] = { husband: 0, wife: 0, total: 0 }));
+    state.items.forEach((item) => {
+      state.apartments.forEach((apt) => {
+        const h = scoreOf(state.husband[item]?.[apt]?.rank);
+        const w = scoreOf(state.wife[item]?.[apt]?.rank);
+        r[apt].husband += h; r[apt].wife += w; r[apt].total += h + w;
+      });
+    });
+    return r;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 렌더
+  // ─────────────────────────────────────────────────────────────
+  function render() { renderDashboard(); renderChecklist(); }
+
+  function renderDashboard() {
+    if (!state.apartments.length) return;
+    const scores = calcScores();
+    const tab = state.tab;
+    const sorted = [...state.apartments].sort((a, b) => scores[b][tab] - scores[a][tab]);
+    const max = Math.max(...sorted.map((a) => scores[a][tab]), 1);
+    $('#bars').innerHTML = sorted.map((apt, i) => {
+      const pts = scores[apt][tab];
+      const pct = Math.round((pts / max) * 100);
+      const medal = i < 3 && pts > 0 ? `<span class="medal">${MEDALS[i]}</span>` : '';
+      return `<div class="bar-row ${i === 0 && pts > 0 ? 'rank-1' : ''}">
+        <div class="bar-label"><span class="name">${medal}${apt}</span><span class="pts">${pts}점</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></div>`;
+    }).join('');
+  }
+
+  function renderChecklist() {
+    const root = $('#checklist');
+    if (!state.items.length) return;
+    const role = state.role;
+    const roleData = state[role];
+    const label = ROLE_LABEL[role];
+    root.innerHTML = '';
+    state.items.forEach((item) => {
+      let itemSum = 0;
+      state.apartments.forEach((apt) => { itemSum += scoreOf(roleData[item]?.[apt]?.rank); });
+      const card = document.createElement('div');
+      card.className = 'item';
+      card.innerHTML = `<div class="item-head"><span class="item-name">${item}</span><span class="item-sum">${label} ${itemSum}점</span></div>`;
+      state.apartments.forEach((apt) => {
+        const d = roleData[item]?.[apt] || { rank: null };
+        const aptPts = scoreOf(d.rank);
+        const block = document.createElement('div');
+        block.className = 'apt';
+        block.innerHTML = `<div class="apt-top"><span class="apt-name">${apt}</span><span class="apt-pts ${aptPts ? 'has' : ''}">${aptPts}점</span></div>`;
+        block.appendChild(rankRow(role, item, apt, d.rank));
+        card.appendChild(block);
+      });
+      root.appendChild(card);
+    });
+  }
+
+  function rankRow(user, item, apt, current) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const ranks = document.createElement('div');
+    ranks.className = 'ranks';
+    [{ l: '1순위', v: 1, d: '1' }, { l: '2순위', v: 2, d: '2' }, { l: '3순위', v: 3, d: '3' }, { l: '다시작성', v: null, d: 'x' }]
+      .forEach(({ l, v, d }) => {
+        const btn = document.createElement('button');
+        btn.className = 'rank-btn'; btn.dataset.rank = d; btn.textContent = l;
+        if (v !== null && v === current) btn.classList.add('active');
+        btn.addEventListener('click', () => setRank(user, item, apt, v));
+        ranks.appendChild(btn);
+      });
+    row.appendChild(ranks);
+    return row;
+  }
+
+  function setRank(user, item, apt, rank) {
+    const data = state[user];
+    if (!data[item]) data[item] = {};
+    if (!data[item][apt]) data[item][apt] = { rank: null, note: '' };
+    if (rank !== null) {
+      state.apartments.forEach((other) => {
+        if (other !== apt && data[item]?.[other]?.rank === rank) data[item][other].rank = null;
+      });
+    }
+    data[item][apt].rank = rank;
+    saveLocal(true);
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 💾 저장 : 로컬 저장 + (설정 시) 깃에 md 업로드
+  // ─────────────────────────────────────────────────────────────
+  async function saveToDevice() {
+    saveLocal(true);
+    if (!ghConfig()) {
+      toast('이 기기에 저장했어요. (깃 동기화는 ⚙️에서 저장소·토큰 설정)', 'success');
+      return;
+    }
+    const btn = $('#btn-save'); btn.disabled = true; const o = btn.textContent; btn.textContent = '업로드…';
+    try {
+      await pushMine();
+      setDirty(false);
+      $('#dot').className = 'dot online';
+      updateStatus();
+      toast('💾 저장 완료 — 깃에 업로드했어요.', 'success');
+    } catch (e) {
+      console.error(e);
+      toast('깃 업로드 실패 — ⚙️ 저장소/토큰 확인 (로컬엔 저장됨)', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = o;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 📤 전송하기 : 카톡 등으로 md 파일 공유 (깃 없이 쓸 때의 백업 경로)
+  // ─────────────────────────────────────────────────────────────
+  async function send() {
+    const btn = $('#btn-send');
+    btn.disabled = true; const original = btn.textContent; btn.textContent = '처리 중…';
+    try {
+      const md = buildMarkdown();
+      const filename = `임장체크리스트_${ROLE_LABEL[state.role]}.md`;
+
+      // 모바일: 공유 시트로 카톡 → 상대방 선택
+      let file = null;
+      try { file = new File([md], filename, { type: 'text/markdown' }); } catch {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: '임장 체크리스트', text: `${ROLE_LABEL[state.role]} 임장 점수표` });
+          toast('공유 시트에서 카카오톡 → 상대방을 선택해 보내세요.', 'success');
+        } catch (err) {
+          if (!err || err.name !== 'AbortError') {
+            downloadBlob(md, filename);
+            toast('공유가 안돼 md 파일로 내려받았어요.', 'success');
+          }
+        }
+        return;
+      }
+
+      // 공유 미지원(PC 등): md 파일 다운로드
+      downloadBlob(md, filename);
+      toast('md 파일로 내보냈어요.', 'success');
+    } finally {
+      btn.disabled = false; btn.textContent = original;
+    }
+  }
+
+  function downloadBlob(text, filename) {
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 🧹 작업완료 : 로컬 청소
+  // ─────────────────────────────────────────────────────────────
+  function cleanupLocal() {
+    localStorage.removeItem(KEY_STATE);
+    localStorage.removeItem(KEY_DIRTY);
+    state.apartments = []; state.items = []; state.husband = {}; state.wife = {};
+    $('#bars').innerHTML = '';
+    $('#checklist').innerHTML = `<div class="loading">🧹 이 기기의 임장 기록이 깨끗하게 정리되었습니다.<br/>다시 작성하려면 새로고침 하세요.</div>`;
+    $('#dot').className = 'dot';
+    $('#status-text').textContent = '정리됨';
+    toast('로컬 기록을 모두 정리했습니다. ✨', 'success');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 마크다운 직렬화 / 파싱 (서버 server.js 포맷과 호환)
+  // ─────────────────────────────────────────────────────────────
+  function formatCell(cell) {
+    const parts = [];
+    if (cell?.rank) parts.push(`${cell.rank}순위`);
+    const note = cell?.note?.trim();
+    if (note) parts.push(cell?.rank ? `(${note})` : note);
+    return parts.join(' ');
+  }
+  function parseCell(text) {
+    const t = (text || '').trim();
+    const m = t.match(/([123])\s*순위/);
+    const rank = m ? Number(m[1]) : null;
+    let note = m ? t.replace(m[0], '').trim() : t;
+    note = note.replace(/^\(/, '').replace(/\)$/, '').trim();
+    return { rank, note };
+  }
+  function buildTable(apartments, items, data) {
+    let out = `| 체크리스트 | ${apartments.join(' | ')} |\n| --- | ${apartments.map(() => '---').join(' | ')} |\n`;
+    for (const item of items) {
+      const cells = apartments.map((apt) => formatCell(data?.[item]?.[apt] || {}));
+      out += `| ${item} | ${cells.join(' | ')} |\n`;
+    }
+    return out;
+  }
+  function buildScoreTable(apartments, scores) {
+    const sorted = [...apartments].sort((a, b) => scores[b].total - scores[a].total);
+    let out = `| 아파트 | 남편 | 아내 | 합계 |\n| --- | --- | --- | --- |\n`;
+    sorted.forEach((apt) => { const s = scores[apt]; out += `| ${apt} | ${s.husband} | ${s.wife} | **${s.total}** |\n`; });
+    return out;
+  }
+  function buildMarkdown() {
+    const scores = calcScores();
+    return [
+      '# 🏡 임장 체크리스트', '', '> 1순위 = 10점 · 2순위 = 5점 · 3순위 = 3점', '',
+      '## 1. 영훈(남편)', '', buildTable(state.apartments, state.items, state.husband),
+      '## 2. 상희(아내)', '', buildTable(state.apartments, state.items, state.wife),
+      '## 3. 점수 집계', '', buildScoreTable(state.apartments, scores), '',
+    ].join('\n');
+  }
+  function parseTable(section) {
+    const lines = section.split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|') && l.endsWith('|'));
+    if (lines.length < 2) return null;
+    const apartments = lines[0].split('|').slice(2, -1).map((c) => c.trim()).filter(Boolean);
+    const items = []; const data = {};
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\|[\s\-|]+\|$/.test(line)) continue;
+      const cols = line.split('|').map((c) => c.trim());
+      const item = cols[1];
+      if (!item) continue;
+      items.push(item); data[item] = {};
+      apartments.forEach((apt, j) => { data[item][apt] = parseCell(cols[j + 2] || ''); });
+    }
+    return { apartments, items, data };
+  }
+  function sliceSection(content, re) {
+    const start = content.search(re);
+    if (start === -1) return null;
+    const rest = content.slice(start);
+    const next = rest.slice(1).search(/\n##\s/);
+    return next === -1 ? rest : rest.slice(0, next + 1);
+  }
+  function parseMarkdown(content) {
+    const hSec = sliceSection(content, /영훈|남편/);
+    const wSec = sliceSection(content, /상희|아내/);
+    const h = hSec ? parseTable(hSec) : null;
+    const w = wSec ? parseTable(wSec) : null;
+    if (!h && !w) return null;
+    return {
+      apartments: h?.apartments?.length ? h.apartments : (w?.apartments || [...APARTMENTS]),
+      items: h?.items?.length ? h.items : (w?.items || [...ITEMS]),
+      husband: h?.data || {}, wife: w?.data || {},
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  let toastTimer;
+  function toast(msg, type = 'success') {
+    const el = $('#toast');
+    el.className = `toast ${type}`; el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (el.hidden = true), 3500);
+  }
+  </script>
+</body>
+</html>

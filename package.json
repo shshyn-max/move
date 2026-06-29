@@ -1,0 +1,15 @@
+{
+  "name": "moving-checklist",
+  "version": "1.0.0",
+  "description": "임장 체크리스트 점수 비교 모바일 웹앱",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
